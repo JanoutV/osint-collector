@@ -2,6 +2,10 @@ from OTXv2 import OTXv2
 import IndicatorTypes
 import argparse
 from config import Config
+from rich.console import Console
+import pandas as pd
+import pprint
+import traceback
 
 
 def main():
@@ -33,7 +37,7 @@ def main():
     parser.add_argument(
         "-s",
         "--subscribed",
-        help="Get pulses you are subscribed to",
+        help="Get Alien Vault pulses you are subscribed to",
         required=False,
         action="store_true",
     )
@@ -45,41 +49,87 @@ def main():
 
     # Establish connection with OTX -> future work with try, catch block
     otx = OTXv2(token)
+    console = Console()
 
     args = vars(parser.parse_args())
 
     if args["ip"]:
-        print(str(otx.get_indicator_details_full(IndicatorTypes.IPv4, args["ip"])))
+        with console.status(
+            f"[bold green] Fetching OSINT from Alien Vault for {args['ip']}..."
+        ):
+            try:
+                otx_data = otx.get_indicator_details_full(
+                    IndicatorTypes.IPv4, args["ip"]
+                )
+            except Exception as e:
+                print(e)
+                if "IP is private" in str(e):
+                    print("You cannot scan an IP address from the private IP range")
+                return None
+            pprint.pprint(otx_data)
 
     if args["domain"]:
-        print(
-            str(otx.get_indicator_details_full(IndicatorTypes.DOMAIN, args["domain"]))
-        )
+        with console.status(
+            f"[bold green] Fetching OSINT from Alien Vault for {args['domain']}..."
+        ):
+            try:
+                otx_data = otx.get_indicator_details_full(
+                    IndicatorTypes.DOMAIN, args["domain"]
+                )
+            except Exception as e:
+                print(e)
+                return None
+            pprint.pprint(otx_data)
 
     if args["hostname"]:
-        print(
-            str(
-                otx.get_indicator_details_full(
+        with console.status(
+            f"[bold green] Fetching OSINT from Alien Vault for {args['hostname']}..."
+        ):
+            try:
+                otx_data = otx.get_indicator_details_full(
                     IndicatorTypes.HOSTNAME, args["hostname"]
                 )
-            )
-        )
+            except Exception as e:
+                print(e)
+                return None
+            pprint.pprint(otx_data)
 
     if args["url"]:
-        print(str(otx.get_indicator_details_full(IndicatorTypes.URL, args["url"])))
+        with console.status(
+            f"[bold green] Fetching OSINT from Alien Vault for {args['url']}..."
+        ):
+            try:
+                otx_data = otx.get_indicator_details_full(
+                    IndicatorTypes.URL, args["url"]
+                )
+            except Exception as e:
+                print(e)
+                return None
+            pprint.pprint(otx_data)
 
     if args["md5"]:
-        print(
-            str(
-                otx.get_indicator_details_full(
+        with console.status(
+            f"[bold green] Fetching OSINT from Alien Vault for {args['md5']}..."
+        ):
+            try:
+                otx_data = otx.get_indicator_details_full(
                     IndicatorTypes.FILE_HASH_MD5, args["md5"]
                 )
-            )
-        )
+            except Exception as e:
+                print(e)
+                return None
+            pprint.pprint(otx_data)
 
     if args["pulse"]:
-        result = otx.search_pulses(args["pulse"])
-        print(str(result.get("results")))
+        with console.status(
+            f"[bold green] Fetching OSINT from Alien Vault for {args['pulse']}..."
+        ):
+            try:
+                result = otx.search_pulses(args["pulse"])
+            except Exception as e:
+                repr(print(e))
+                return None
+            pprint.pprint(result.get("results"))
 
     if args["subscribed"]:
         print(str(otx.getall(max_items=3, limit=5)))
