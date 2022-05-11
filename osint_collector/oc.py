@@ -59,6 +59,12 @@ def main():
     parser.add_argument(
         "-d", "--domain", help="Domain, for example: vut.cz", required=False
     )
+    parser.add_argument(
+        "-b",
+        "--brief",
+        help="Get only the most important enrichment for given indicator",
+        required=False,
+    )
     parser.add_argument("-i", "--ip", help="IPv4 eg: 8.8.8.8", required=False)
     parser.add_argument(
         "-ho", "--hostname", help="Hostname eg: www.vut.cz", required=False
@@ -98,8 +104,10 @@ def main():
     otx = OTXv2(otx_token)
     # VT
     vt_client = vt.Client(vt_token)
-    virustotal_url = "https://www.virustotal.com/vtapi/v2/{}/report?{}={}&apikey={}"
-
+    # virus_total_url_v2 = "https://www.virustotal.com/vtapi/v2/{}/report?{}={}&apikey={}"
+    virus_total_url_v3 = "https://www.virustotal.com/api/v3/{}/{}"
+    vt_relationship_url = "https://www.virustotal.com/api/v3/{}/{}/{}"
+    vt_headers = {"Accept": "application/json", "x-apikey": f"{vt_token}"}
     if args["ip"]:
         # -------ALIEN VAULT----------
         with console.status(
@@ -119,11 +127,15 @@ def main():
 
         # -------VIRUSTOTAL----------
         with console.status(
-            f"[bold green] Fetching OSINT from Virus Total for {args['ip']}..."
+            f"[bold green] Fetching OSINT IP report from Virus Total for {args['ip']}..."
         ):
+            # VT IP ADDRESS REPORT
+            # AS PER https://developers.virustotal.com/reference/ip-info
             try:
-                url = virustotal_url.format("ip-address", "ip", args["ip"], vt_token)
-                queried_data = fetch_data_from_url(url, "virustotal")
+                url = virus_total_url_v3.format("ip_addresses", args["ip"])
+                queried_data = fetch_data_from_url(
+                    url, "virustotal", headers=vt_headers
+                )
             except Exception as e:
                 print(e)
             if not queried_data:
@@ -132,6 +144,60 @@ def main():
             json_data = json.loads(queried_data)
             print("#VIRUSTOTAL OSINT")
             pprint.pprint(json_data)
+
+            # VT IP RELATIONSHIPS - 1. URLS(enteprise feature), 2. REFERRER_FILES,
+            # 3. COMMUNICATING_FILES
+
+            ## REFERRER FILES
+            # try:
+            #     url = vt_relationship_url.format(
+            #         "ip_addresses", args["ip"], "referrer_files?limit=10"
+            #     )
+            #     queried_data = fetch_data_from_url(
+            #         url, "virustotal", headers=vt_headers
+            #     )
+            # except Exception as e:
+            #     print(e)
+            # if not queried_data:
+            #     print(f"No data found for {args['ip']} by VirusTotal.")
+            #     return None
+            # json_data = json.loads(queried_data)
+            # print("#VIRUSTOTAL OSINT - REFERRER FILES")
+            # pprint.pprint(json_data)
+            ## 2. COMMUNICATING FILES
+            try:
+                url = vt_relationship_url.format(
+                    "ip_addresses", args["ip"], "communicating_files?limit=10"
+                )
+                queried_data = fetch_data_from_url(
+                    url, "virustotal", headers=vt_headers
+                )
+            except Exception as e:
+                print(e)
+            if not queried_data:
+                print(f"No data found for {args['ip']} by VirusTotal.")
+                return None
+            json_data = json.loads(queried_data)
+            print("#VIRUSTOTAL OSINT - COMMUNICATING FILES")
+            # pprint.pprint(json_data)
+
+            ## 3. URL's -> Enterprise feature
+            try:
+                url = vt_relationship_url.format(
+                    "ip_addresses", args["ip"], "urls?limit=10"
+                )
+                queried_data = fetch_data_from_url(
+                    url, "virustotal", headers=vt_headers
+                )
+            except Exception as e:
+                print(e)
+            if not queried_data:
+                print(f"No data found for {args['ip']} by VirusTotal.")
+                return None
+            json_data = json.loads(queried_data)
+            print("#VIRUSTOTAL OSINT - URL's")
+            # pprint.pprint(json_data)
+
         # -------X-FORCE EXCHANGE----------
         #   with console.status(
         #     f"[bold green] Fetching OSINT from IBM X-FORCE for {args['ip']}..."
