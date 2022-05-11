@@ -3,9 +3,51 @@ import IndicatorTypes
 import argparse
 from config import Config
 from rich.console import Console
+from rich import print_json
 import pandas as pd
 import pprint
-import traceback
+
+# import traceback
+import vt
+import requests
+import json
+
+
+def fetch_data_from_url(url, service_name, headers=None, decode=True, usetor=False):
+    """
+    Function for downloading data from a specific URL
+    :param url: URL to be fetched
+    :param headers: Headers to be used for the request
+    :param decode: True if the data should be decoded
+    :return: The queried data either unaltered or decoded, or None if
+             nothing was fetched
+    """
+    # If the URL is empty or None, return None
+    if not url:
+        print("Missing URL, cannot fetch data")
+        return None
+    # Timeout - TBD
+    # Fetch the data using Requests library
+    try:
+        session = requests.session()
+        response = session.get(url, headers=headers)
+    except Exception as e:
+        print(f"Failed to retrieve data from {url}, exception: {repr(e)}")
+        return None
+    # Don't decode if the decode param is set to False
+    if not decode:
+        return response.content
+    # Otherwise first try to decode as UTF-8 and if it doesn't work, then
+    # decode as ASCII
+    try:
+        content = response.content.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            content = response.content.decode("ascii")
+        except Exception:
+            return response.content
+
+    return content
 
 
 def main():
@@ -42,18 +84,24 @@ def main():
         action="store_true",
     )
 
-    try:
-        token = Config.get_value_from_conf("TOKEN")
-    except Exception:
-        raise AttributeError("Error getting config attributes.")
-
-    # Establish connection with OTX -> future work with try, catch block
-    otx = OTXv2(token)
-    console = Console()
-
     args = vars(parser.parse_args())
 
+    try:
+        otx_token = Config.get_value_from_conf("AVT")
+        vt_token = Config.get_value_from_conf("VT")
+    except Exception:
+        raise AttributeError("Error getting config attributes.")
+    # create the enhanced Console object
+    console = Console()
+    # -------API OBJECT ESTABLISHMENT----------
+    # OTX
+    otx = OTXv2(otx_token)
+    # VT
+    vt_client = vt.Client(vt_token)
+    virustotal_url = "https://www.virustotal.com/vtapi/v2/{}/report?{}={}&apikey={}"
+
     if args["ip"]:
+        # -------ALIEN VAULT----------
         with console.status(
             f"[bold green] Fetching OSINT from Alien Vault for {args['ip']}..."
         ):
@@ -65,8 +113,29 @@ def main():
                 print(e)
                 if "IP is private" in str(e):
                     print("You cannot scan an IP address from the private IP range")
-                return None
+                    return None
+            print("#ALIENVAULT OSINT")
             pprint.pprint(otx_data)
+
+        # -------VIRUSTOTAL----------
+        with console.status(
+            f"[bold green] Fetching OSINT from Virus Total for {args['ip']}..."
+        ):
+            try:
+                url = virustotal_url.format("ip-address", "ip", args["ip"], vt_token)
+                queried_data = fetch_data_from_url(url, "virustotal")
+            except Exception as e:
+                print(e)
+            if not queried_data:
+                print(f"No data found for {args['ip']} by VirusTotal.")
+                return None
+            json_data = json.loads(queried_data)
+            print("#VIRUSTOTAL OSINT")
+            pprint.pprint(json_data)
+        # -------X-FORCE EXCHANGE----------
+        #   with console.status(
+        #     f"[bold green] Fetching OSINT from IBM X-FORCE for {args['ip']}..."
+        # ): try:
 
     if args["domain"]:
         with console.status(
