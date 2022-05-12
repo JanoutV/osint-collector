@@ -13,6 +13,9 @@ import requests
 import json
 
 
+def delimiter():
+    print("=======================================")
+
 def fetch_data_from_url(url, service_name, headers=None, decode=True, usetor=False):
     """
     Function for downloading data from a specific URL
@@ -60,10 +63,11 @@ def main():
         "-d", "--domain", help="Domain, for example: vut.cz", required=False
     )
     parser.add_argument(
-        "-b",
-        "--brief",
-        help="Get only the most important enrichment for given indicator",
+        "-a",
+        "--all",
+        help="Get unfiltered, unformated output from the API's.",
         required=False,
+        action="store_true",
     )
     parser.add_argument("-i", "--ip", help="IPv4 eg: 8.8.8.8", required=False)
     parser.add_argument(
@@ -103,7 +107,7 @@ def main():
     # OTX
     otx = OTXv2(otx_token)
     # VT
-    vt_client = vt.Client(vt_token)
+    #vt_client = vt.Client(vt_token)
     # virus_total_url_v2 = "https://www.virustotal.com/vtapi/v2/{}/report?{}={}&apikey={}"
     virus_total_url_v3 = "https://www.virustotal.com/api/v3/{}/{}"
     vt_relationship_url = "https://www.virustotal.com/api/v3/{}/{}/{}"
@@ -123,7 +127,46 @@ def main():
                     print("You cannot scan an IP address from the private IP range")
                     return None
             print("#ALIENVAULT OSINT")
-            pprint.pprint(otx_data)
+            delimiter()
+            # If the all option is toggled, just print out
+            if args["all"]:
+                pprint.pprint(otx_data)
+            else:
+                # we use the get method here to treat dict values gracefully
+                # 1. GENERAL subdict
+                otx_data_general = otx_data['general']
+                print('GENERAL:')
+                print(f"ASN: {otx_data_general.get('asn')}")
+                print(f"Country name: {otx_data_general.get('country_name')}")
+                delimiter()
+                
+                print('PULSE INFO:')
+                pulses = otx_data_general['pulse_info'].get('pulses')
+                print(f"Number of pulses: {otx_data_general['pulse_info'].get('count')}")
+                for pulse in pulses:
+                    print(f"Name of Pulse: {pulse.get('name')}")
+                    print(f"Pulse ID: {pulse.get('id')}")
+                    print(f"Adversary connected: {pulse.get('adversary')}")
+                    print(f"Attack IDs: {pulse.get('attack_ids')}")
+                    print(f"Description: {pulse.get('description')}")
+                    print(f"Tags: {pulse.get('tags')}")
+                    print(f"Targetted Countries: {pulse.get('targeted_countries')}")
+                    print(f"Connected Malware families: {pulse.get('malware_families')}")
+                    delimiter()
+                    
+                # 2. URL_LIST subdict
+                delimiter()
+                print("CONNECTED URL INFO:")
+                otx_data_url = otx_data['url_list']
+                print(f"Number of connected URL's: {otx_data_url.get('full_size')}")
+                urls = otx_data_url['url_list']
+                for url in urls:
+                    print(f"URL: {url.get('url')}")
+                    print(f"Date of submission: {url.get('date')}")
+                    delimiter()
+                    
+                
+                
 
         # -------VIRUSTOTAL----------
         with console.status(
@@ -142,8 +185,30 @@ def main():
                 print(f"No data found for {args['ip']} by VirusTotal.")
                 return None
             json_data = json.loads(queried_data)
-            print("#VIRUSTOTAL OSINT")
-            pprint.pprint(json_data)
+            
+            if args["all"]:
+                print("#VIRUSTOTAL ALL OSINT")
+                pprint.pprint(json_data)
+            else:
+                print("#VIRUSTOTAL OSINT")
+                delimiter()
+                vt_data_analysis_results = json_data['data']['attributes']['last_analysis_results']
+                vt_data_analysis_stats = json_data['data']['attributes']['last_analysis_stats']
+                print(f"Last analysis results - Number of engines that marked the indicator:")
+                print(f"harmless: {vt_data_analysis_stats['harmless']}")
+                print(f"malicious: {vt_data_analysis_stats['malicious']}")
+                print(f"suspicious: {vt_data_analysis_stats['suspicious']}")
+                print(f"undetected: {vt_data_analysis_stats['undetected']}")
+                print(f"timeout: {vt_data_analysis_stats['timeout']}")
+                delimiter()
+                print("List of engines that marked the indicator as malicious/suspicious:")
+                for engine in vt_data_analysis_results:  
+                    if vt_data_analysis_results[engine]['result'] == ('malicious' or 'suspicious'):
+                        print(f"{vt_data_analysis_results[engine]['engine_name']} -> {vt_data_analysis_results[engine]['result']}")
+                delimiter()
+                
+            
+            
 
             # VT IP RELATIONSHIPS - 1. URLS(enteprise feature), 2. REFERRER_FILES,
             # 3. COMMUNICATING_FILES
@@ -178,8 +243,9 @@ def main():
                 print(f"No data found for {args['ip']} by VirusTotal.")
                 return None
             json_data = json.loads(queried_data)
-            print("#VIRUSTOTAL OSINT - COMMUNICATING FILES")
-            # pprint.pprint(json_data)
+            if args["all"]:
+                print("#VIRUSTOTAL OSINT - COMMUNICATING FILES")
+                # pprint.pprint(json_data)
 
             ## 3. URL's -> Enterprise feature
             try:
@@ -195,8 +261,10 @@ def main():
                 print(f"No data found for {args['ip']} by VirusTotal.")
                 return None
             json_data = json.loads(queried_data)
-            print("#VIRUSTOTAL OSINT - URL's")
-            # pprint.pprint(json_data)
+            
+            if args["all"]:
+                print("#VIRUSTOTAL OSINT - URL's")
+                pprint.pprint(json_data)
 
         # -------X-FORCE EXCHANGE----------
         #   with console.status(
