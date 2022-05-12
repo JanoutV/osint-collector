@@ -3,8 +3,8 @@ import IndicatorTypes
 import argparse
 from config import Config
 from rich.console import Console
-from rich import print_json
-import pandas as pd
+
+# from rich import print_json
 import pprint
 
 # import traceback
