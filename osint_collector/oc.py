@@ -4,14 +4,12 @@ import argparse
 from config import Config
 from rich.console import Console
 from itertools import islice
-
-# from rich import print_json
-import pprint
-
-# import traceback
-import vt
 import requests
 import json
+import pprint
+# from rich import print_json
+# import traceback
+
 
 
 def delimiter():
@@ -24,6 +22,7 @@ def fetch_data_from_url(url, service_name, headers=None, decode=True, params=Non
     :param url: URL to be fetched
     :param headers: Headers to be used for the request
     :param decode: True if the data should be decoded
+    :param params: Additional parameters to be supplied with the request
     :return: The queried data either unaltered or decoded, or None if
              nothing was fetched
     """
@@ -72,9 +71,6 @@ def main():
         action="store_true",
     )
     parser.add_argument("-i", "--ip", help="IPv4 eg: 8.8.8.8", required=False)
-    # parser.add_argument(
-    #     "-ho", "--hostname", help="Hostname eg: www.vut.cz", required=False
-    # )
     parser.add_argument("-u", "--url", help="URL eg; http://www.vut.cz", required=False)
     parser.add_argument(
         "-H",
