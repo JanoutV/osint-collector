@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# Author: xjanou19@vut.cz
+# Description: CLI tool to query OSINT for IoCs
+# Make sure you have a file named config.ini in the osint_collector folder
+# provide your API keys in the config.ini file
+# AVT -> AlienVault OTX API key
+# VT -> VirusTotal API key
+# ABUSE -> AbuseIPDB API key
 from OTXv2 import OTXv2
 import IndicatorTypes
 import argparse
