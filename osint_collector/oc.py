@@ -58,7 +58,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="OSINT Collector",
         add_help=True,
-        epilog="OSINT Collector, Written by Vladimir Janout, 2022",
+        epilog="OSINT Collector, Written by Vladimir Janout, 2022, xjanou19@vut.cz",
     )
     parser.add_argument(
         "-d", "--domain", help="Domain, for example: vut.cz", required=False
