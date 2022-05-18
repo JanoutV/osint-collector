@@ -57,7 +57,7 @@ def fetch_data_from_url(url, service_name, headers=None, decode=True, params=Non
 
 def main():
     parser = argparse.ArgumentParser(
-        description="OSINT querry tool",
+        description="OSINT Collector",
         add_help=True,
         epilog="OSINT Collector, Written by Vladimir Janout, 2022",
     )
@@ -72,14 +72,14 @@ def main():
         action="store_true",
     )
     parser.add_argument("-i", "--ip", help="IPv4 eg: 8.8.8.8", required=False)
-    parser.add_argument(
-        "-ho", "--hostname", help="Hostname eg: www.vut.cz", required=False
-    )
+    # parser.add_argument(
+    #     "-ho", "--hostname", help="Hostname eg: www.vut.cz", required=False
+    # )
     parser.add_argument("-u", "--url", help="URL eg; http://www.vut.cz", required=False)
     parser.add_argument(
-        "-m",
-        "--md5",
-        help="MD5 Hash of a file eg; 7b42b35832855ab4ff37ae9b8fa9e571",
+        "-H",
+        "--hash",
+        help="Hash of a file, MD5, SHA256, etc.",
         required=False,
     )
     parser.add_argument(
@@ -101,17 +101,14 @@ def main():
     try:
         otx_token = Config.get_value_from_conf("AVT")
         vt_token = Config.get_value_from_conf("VT")
+        # limit for abuse is 1000 requests PER DAY for the standard user.
         abuse_token = Config.get_value_from_conf("ABUSE")
     except Exception:
         raise AttributeError("Error getting config attributes.")
     # create the enhanced Console object
     console = Console()
     # -------API OBJECT ESTABLISHMENT----------
-    # OTX
     otx = OTXv2(otx_token)
-    # VT
-    # vt_client = vt.Client(vt_token)
-    # virus_total_url_v2 = "https://www.virustotal.com/vtapi/v2/{}/report?{}={}&apikey={}"
     virus_total_url_v3 = "https://www.virustotal.com/api/v3/{}/{}"
     vt_relationship_url = "https://www.virustotal.com/api/v3/{}/{}/{}"
     vt_headers = {"Accept": "application/json", "x-apikey": f"{vt_token}"}
@@ -360,18 +357,18 @@ def main():
                 return None
             pprint.pprint(otx_data)
 
-    if args["hostname"]:
-        with console.status(
-            f"[bold green] Fetching OSINT from Alien Vault for {args['hostname']}..."
-        ):
-            try:
-                otx_data = otx.get_indicator_details_full(
-                    IndicatorTypes.HOSTNAME, args["hostname"]
-                )
-            except Exception as e:
-                print(e)
-                return None
-            pprint.pprint(otx_data)
+    # if args["hostname"]:
+    #     with console.status(
+    #         f"[bold green] Fetching OSINT from Alien Vault for {args['hostname']}..."
+    #     ):
+    #         try:
+    #             otx_data = otx.get_indicator_details_full(
+    #                 IndicatorTypes.HOSTNAME, args["hostname"]
+    #             )
+    #         except Exception as e:
+    #             print(e)
+    #             return None
+    #         pprint.pprint(otx_data)
 
     if args["url"]:
         with console.status(
@@ -386,33 +383,57 @@ def main():
                 return None
             pprint.pprint(otx_data)
 
-    if args["md5"]:
+    if args["hash"]:
         with console.status(
-            f"[bold green] Fetching OSINT from Alien Vault for {args['md5']}..."
+            f"[bold green] Fetching OSINT from Alien Vault for {args['hash']}..."
         ):
             try:
                 otx_data = otx.get_indicator_details_full(
-                    IndicatorTypes.FILE_HASH_MD5, args["md5"]
+                    IndicatorTypes.FILE_HASH_MD5, args["hash"]
                 )
             except Exception as e:
                 print(e)
                 return None
-            pprint.pprint(otx_data)
+            if args["all"]:
+                pprint.pprint(otx_data)
+            else:
+                ...
+                print("OTX OSINT:")
+                # 1. General subdict with Pulse info
+                delimiter()
+                otx_data_general = otx_data.get("general", {})
+                print("PULSE INFO:")
+                pulses = otx_data_general.get("pulse_info", {}).get("pulses", {})
+                print(
+                    f"Number of pulses: {otx_data_general['pulse_info'].get('count')}"
+                )
+                for pulse in pulses:
+                    print(f"Name of Pulse: {pulse.get('name')}")
+                    print(f"Pulse ID: {pulse.get('id')}")
+                    print(f"Adversary connected: {pulse.get('adversary')}")
+                    print(f"Attack IDs: {pulse.get('attack_ids')}")
+                    print(f"Description: {pulse.get('description')}")
+                    print(f"Tags: {pulse.get('tags')}")
+                    print(f"Targetted Countries: {pulse.get('targeted_countries')}")
+                    print(
+                        f"Connected Malware families: {pulse.get('malware_families')}"
+                    )
+                    delimiter()
 
         # VT IP FILE REPORT
         # AS PER https://developers.virustotal.com/reference/file-info
         with console.status(
-            f"[bold green] Fetching OSINT FILE report from Virus Total for {args['md5']}..."
+            f"[bold green] Fetching OSINT FILE report from Virus Total for {args['hash']}..."
         ):
             try:
-                url = virus_total_url_v3.format("files", args["md5"])
+                url = virus_total_url_v3.format("files", args["hash"])
                 queried_data = fetch_data_from_url(
                     url, "virustotal", headers=vt_headers
                 )
             except Exception as e:
                 print(e)
             if not queried_data:
-                print(f"No data found for {args['md5']} by VirusTotal.")
+                print(f"No data found for {args['hash']} by VirusTotal.")
                 return None
             json_data = json.loads(queried_data)
 
@@ -428,6 +449,22 @@ def main():
                 vt_data_analysis_stats = json_data["data"]["attributes"][
                     "last_analysis_stats"
                 ]
+                vt_data_exiftool = (
+                    json_data.get("data", {}).get("attributes", {}).get("exiftool", {})
+                )
+                vt_data_classification = (
+                    json_data.get("data", {})
+                    .get("attributes", {})
+                    .get("popular_threat_classification", {})
+                )
+                print("File Metadata:")
+                print(f"CPU architecture: {vt_data_exiftool.get('CPUArchitecture')}")
+                print(f"File Type: {vt_data_exiftool.get('FileType')}")
+                print(f"CPU Byte Order: {vt_data_exiftool.get('CPUByteOrder')}")
+                print(
+                    f"Suggested VT label: {vt_data_classification.get('suggested_threat_label')}"
+                )
+                delimiter()
                 print(
                     f"Last analysis results - Number of engines that marked the indicator:"
                 )
