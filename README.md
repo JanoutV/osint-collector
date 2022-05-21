@@ -20,3 +20,10 @@ AVT = <API_KEY_FROM_ALIEN_VAULT>
 VT = <API_KEY_FROM_VIRUS_TOTAL>
 ABUSE = <API_KEY_FROM_ABUSEIPDB>
 ```
+
+## Launch using python3 within the virtual environment
+
+```bash
+python3 osint_collector/oc.py --help
+```
+
