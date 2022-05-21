@@ -1,7 +1,7 @@
 # osint-collector
 OSINT Collector - Tool for OSINT analysis
 
-## How to install
+## Install the Python tool
 
 ```bash
 cd osint-collector
@@ -10,9 +10,13 @@ virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+## Create an account and generate API keys for threat intelligence feeds
+- [AlienVault OTX](https://otx.alienvault.com/)
+- [VirusTotal](https://www.virustotal.com/gui/join-us)
+- [AbuseIPDB](https://www.abuseipdb.com/register?plan=free)
 
 ## Add API keys to `config.ini` in this format
-`config.ini`
+Create a `config.ini` file in the `osint_collector` folder and add the following content.
 
 ```ini
 [API_KEYS]
