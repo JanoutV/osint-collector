@@ -25,5 +25,22 @@ ABUSE = <API_KEY_FROM_ABUSEIPDB>
 
 ```bash
 python3 osint_collector/oc.py --help
+usage: oc.py [-h] [-d DOMAIN] [-a] [-i IP] [-u URL] [-H HASH] [-p PULSE] [-s]
+
+OSINT Collector
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DOMAIN, --domain DOMAIN
+                        Domain, for example: vut.cz
+  -a, --all             Get unfiltered, unformated output from the API's.
+  -i IP, --ip IP        IPv4 eg: 8.8.8.8
+  -u URL, --url URL     URL eg; http://www.vut.cz
+  -H HASH, --hash HASH  Hash of a file, MD5, SHA256, etc.
+  -p PULSE, --pulse PULSE
+                        Search OTX pulses for a string eg: Dridex
+  -s, --subscribed      Get Alien Vault pulses you are subscribed to
+
+OSINT Collector, Written by Vladimir Janout, 2022, xjanou19@vut.cz
 ```
 
