@@ -11,7 +11,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Add API keys to config ini in this format
+## Add API keys to `config.ini` in this format
 `config.ini`
 
 ```ini
