@@ -171,13 +171,13 @@ def main():
                 print(f"ASN: {otx_data_general.get('asn')}")
                 print(f"Country name: {otx_data_general.get('country_name')}")
                 delimiter()
-
-                print("PULSE INFO:")
                 pulses = otx_data_general["pulse_info"].get("pulses")
                 print(
                     f"Number of pulses: {otx_data_general['pulse_info'].get('count')}"
                 )
-                for pulse in pulses:
+                delimiter()
+                print("PULSE INFO (max 10 pulses):")
+                for pulse in islice(pulses, 10):
                     print(f"Name of Pulse: {pulse.get('name')}")
                     print(f"Pulse ID: {pulse.get('id')}")
                     print(f"Adversary connected: {pulse.get('adversary')}")
