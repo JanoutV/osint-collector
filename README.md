@@ -1,6 +1,9 @@
 # osint-collector
 OSINT Collector - Tool for OSINT analysis
 
+## About
+OSINT Collector is a simple command-line tool designed to query threat intelligence feeds. It makes investigating easier via terminal instead of using the web interface. Currently, 3 threat intelligence feeds are supported: AlienVault OTX, VirusTotal and IPDB. The results are printed to stdout.
+
 ## Install the Python tool
 
 ```bash
