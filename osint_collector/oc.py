@@ -15,10 +15,25 @@ from itertools import islice
 import requests
 import json
 import pprint
+import ipaddress
 # from rich import print_json
 # import traceback
 
 
+
+
+def validate_ip_address(address):
+    try:
+        ip = ipaddress.ip_address(address)
+        return True
+        #print("IP address {} is valid. The object returned is {}".format(address, ip))
+    except ValueError:
+        print("IP address {} is not valid".format(address))
+        return False 
+    
+# string size without extra Python object fuss
+def utf8len(s):
+    return len(s.encode('utf-8'))
 
 def delimiter():
     print("=======================================")
@@ -145,6 +160,11 @@ def main():
         "23": "IoT Targeted",
     }
     if args["ip"]:
+        # check if it's a valid IP
+        if validate_ip_address(args["ip"]):
+            ...
+        else:
+            return None
         # -------ALIEN VAULT----------
         with console.status(
             f"[bold green] Fetching OSINT from Alien Vault for {args['ip']}..."
@@ -225,9 +245,7 @@ def main():
             else:
                 print("#VIRUSTOTAL OSINT")
                 delimiter()
-                vt_data_analysis_results = json_data["data"]["attributes"][
-                    "last_analysis_results"
-                ]
+                vt_data_analysis_results = json_data.get("data", {}).get("attributes", {}).get("last_analysis_results", {})
                 vt_data_analysis_stats = json_data["data"]["attributes"][
                     "last_analysis_stats"
                 ]
@@ -345,6 +363,8 @@ def main():
                 delimiter()
                 ##PRINT TOP 10 latest reports
                 for report in islice(abuse_reports, 10):
+                   ## d3 = {k:[ abuse_categories[v_i] for v_i in v] for k,v in report.items() }
+                   ## comprehension to replace
                     print(json.dumps(report, sort_keys=True, indent=4))
                     delimiter()
 
@@ -388,13 +408,32 @@ def main():
             pprint.pprint(otx_data)
 
     if args["hash"]:
+        if utf8len(args['hash']) == 32 or utf8len(args['hash']) == 40 or utf8len(args['hash']) == 64:
+            ...
+        else:
+            print("Hash of this length is not supported. Please use SHA256, SHA1 or MD5 fingerprint")
+            return None
         with console.status(
             f"[bold green] Fetching OSINT from Alien Vault for {args['hash']}..."
         ):
-            try:
-                otx_data = otx.get_indicator_details_full(
+            try: 
+                #MD5 hash is represented as 32 hexadecimal characters
+                if utf8len(args['hash']) == 32:
+                    otx_data = otx.get_indicator_details_full(
                     IndicatorTypes.FILE_HASH_MD5, args["hash"]
-                )
+                    )
+                #SHA1 hash is represented as 40 hexadecimal characters
+                elif utf8len(args['hash']) == 40:
+                    otx_data = otx.get_indicator_details_full(
+                    IndicatorTypes.FILE_HASH_SHA1, args["hash"]
+                    ) 
+                #SHA256 hash is represented as 64 hexadecimal characters
+                elif utf8len(args['hash']) == 64:
+                    otx_data = otx.get_indicator_details_full(
+                    IndicatorTypes.FILE_HASH_SHA256, args["hash"]
+                    )
+                else:
+                    print("Hash type not supported. Please use MD5, SHA1 or SHA256 hashes.")
             except Exception as e:
                 print(e)
                 return None
